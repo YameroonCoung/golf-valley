@@ -1,0 +1,633 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#14532d" />
+  <title>Golf Valley Manager</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0f172a;
+      --panel: #3f2a16;
+      --panel2: #1f2937;
+      --cream: #fff7df;
+      --green: #166534;
+      --green2: #22c55e;
+      --gold: #facc15;
+      --danger: #ef4444;
+      --blue: #0ea5e9;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; min-height:100%; background:linear-gradient(#0284c7,#7dd3fc); font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; overscroll-behavior:none; }
+    body { min-height:100vh; min-height:100dvh; }
+    button { font:inherit; touch-action:manipulation; }
+    .app { min-height:100vh; min-height:100dvh; display:flex; justify-content:center; align-items:center; padding:max(10px,env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); }
+    .game { width:min(100%,980px); position:relative; }
+    .topbar { display:flex; justify-content:space-between; gap:8px; margin-bottom:8px; }
+    .panel { background:rgba(63,42,22,.96); color:var(--cream); border:3px solid #26170c; border-radius:12px; box-shadow:0 6px 18px rgba(0,0,0,.28); }
+    .stats { padding:10px 12px; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:5px 14px; font-size:14px; min-width:230px; }
+    .daybox { padding:10px 14px; text-align:center; min-width:150px; font-size:14px; }
+    .money.negative { color:#fecaca; }
+    .canvas-wrap { position:relative; background:#14532d; border:4px solid #052e16; border-radius:14px; overflow:hidden; box-shadow:0 10px 28px rgba(0,0,0,.4); }
+    canvas { display:block; width:100%; height:auto; image-rendering:pixelated; touch-action:none; }
+    .message { min-height:46px; margin-top:8px; padding:10px 12px; text-align:center; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; }
+    .bottom { display:grid; grid-template-columns:1fr auto 1fr; gap:10px; align-items:end; margin-top:10px; }
+    .tile-info, .help { padding:10px; font-size:12px; min-height:90px; }
+    .help { text-align:right; }
+    .controls { display:grid; grid-template-columns:repeat(3,58px); grid-template-rows:repeat(3,54px); gap:6px; }
+    .ctrl, .action { border:0; border-radius:12px; background:#f5deb3; color:#3f2a16; font-weight:900; box-shadow:0 4px 0 #9a6b36; }
+    .ctrl:active, .action:active { transform:translateY(3px); box-shadow:0 1px 0 #9a6b36; }
+    .ctrl.blank { visibility:hidden; }
+    .action { background:#facc15; }
+    .open-club { margin-top:8px; width:100%; padding:10px; border:0; border-radius:10px; background:#16a34a; color:white; font-weight:800; }
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.72); display:none; align-items:center; justify-content:center; z-index:20; padding:16px; }
+    .modal-backdrop.show { display:flex; }
+    .modal { width:min(100%,650px); max-height:90dvh; overflow:auto; background:#fff7df; color:#3f2a16; border:4px solid #5b3719; border-radius:16px; padding:18px; }
+    .modal h2 { margin:0 0 12px; }
+    .section { background:#e8f2ff; border-radius:12px; padding:12px; margin:10px 0; }
+    .section.green { background:#dcfce7; }
+    .section.orange { background:#ffedd5; }
+    .section.purple { background:#f3e8ff; }
+    .row { display:flex; justify-content:space-between; gap:12px; margin:4px 0; }
+    .staff-card { background:white; border-radius:10px; padding:10px; margin:8px 0; display:flex; justify-content:space-between; gap:10px; }
+    .small { font-size:12px; opacity:.8; }
+    .btn-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:12px; }
+    .btn { border:0; border-radius:10px; padding:11px 10px; color:white; font-weight:800; background:#2563eb; }
+    .btn.green { background:#16a34a; }
+    .btn.purple { background:#9333ea; }
+    .btn.orange { background:#ea580c; }
+    .btn.gray { background:#4b5563; }
+    .btn.red { background:#dc2626; }
+    .btn:disabled { opacity:.45; }
+    .staff-actions { display:flex; flex-direction:column; gap:6px; }
+    .staff-actions button { width:38px; height:34px; border:0; border-radius:8px; color:white; font-weight:900; background:#7c3aed; }
+    .staff-actions button:last-child { background:#6b7280; }
+    .visitor-feed { position:absolute; right:10px; top:90px; width:190px; pointer-events:none; }
+    .visitor-card { background:rgba(255,247,223,.94); color:#3f2a16; border:2px solid #5b3719; border-radius:10px; padding:7px; margin-bottom:5px; font-size:11px; }
+    @media (max-width:720px) {
+      .topbar { align-items:stretch; }
+      .stats { min-width:0; flex:1; font-size:12px; gap:4px 8px; }
+      .daybox { min-width:125px; font-size:12px; }
+      .bottom { grid-template-columns:1fr auto; }
+      .help { display:none; }
+      .tile-info { min-height:0; }
+      .controls { grid-template-columns:repeat(3,52px); grid-template-rows:repeat(3,49px); }
+      .visitor-feed { display:none; }
+    }
+
+    .book-button { width:100%; margin-top:10px; padding:12px; border:0; border-radius:10px; background:#7c3aed; color:white; font-weight:900; }
+    .book-view { display:none; }
+    .book-view.show { display:block; }
+    .club-view.hidden { display:none; }
+    .book-tabs { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+    .book-tabs button { border:0; border-radius:999px; padding:8px 11px; background:#e5e7eb; color:#374151; font-weight:800; }
+    .book-tabs button.active { background:#7c3aed; color:white; }
+    .book-tools { display:grid; grid-template-columns:1fr auto; gap:8px; margin:8px 0; }
+    .book-tools input, .book-tools select { width:100%; padding:9px; border:1px solid #c4b5fd; border-radius:8px; background:white; color:#312e81; }
+    .book-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .metric { background:white; border-radius:10px; padding:10px; }
+    .metric strong { display:block; font-size:18px; color:#6d28d9; }
+    .people-list { display:grid; gap:8px; margin-top:10px; }
+    .person-card { background:white; border-radius:11px; padding:10px; border-left:5px solid #8b5cf6; }
+    .person-card.member { border-left-color:#16a34a; }
+    .person-head { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; }
+    .person-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:4px 12px; margin-top:7px; font-size:12px; }
+    .tag { display:inline-block; border-radius:999px; padding:3px 7px; background:#ede9fe; color:#5b21b6; font-size:11px; font-weight:800; }
+    .memory-list, .chronicle-list { display:grid; gap:6px; margin-top:8px; }
+    .memory-item, .chronicle-item { background:white; border-radius:8px; padding:8px; font-size:12px; }
+    .hall-row { display:flex; justify-content:space-between; gap:8px; background:white; border-radius:8px; padding:9px; margin:6px 0; }
+    .phase-badge { display:inline-block; margin:3px 3px 0 0; padding:4px 7px; border-radius:999px; background:#dcfce7; color:#166534; font-size:11px; font-weight:800; }
+    @media (max-width:560px) {
+      .book-tools { grid-template-columns:1fr; }
+      .book-summary, .person-grid { grid-template-columns:1fr; }
+    }
+
+  </style>
+</head>
+<body>
+<div class="app">
+  <main class="game">
+    <div class="topbar">
+      <div class="panel stats">
+        <div>💵 <strong id="money">$2500</strong></div>
+        <div>⚡ <strong id="energy">100</strong></div>
+        <div>🏆 <strong id="reputation">5</strong></div>
+        <div>👥 <strong id="visitors">0 heute</strong></div>
+        <div>🪪 <strong id="members">0 Mitglieder</strong></div>
+        <div>⛳ <strong id="holes">0 Bahnen</strong></div>
+      </div>
+      <div class="panel daybox">
+        <strong id="day">Frühling · Tag 1</strong><br>
+        <span id="time">06:00</span><br>
+        <span id="weather">☀️ Sonnig</span>
+      </div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="gameCanvas" width="600" height="400"></canvas>
+      <div id="visitorFeed" class="visitor-feed"></div>
+    </div>
+
+    <div id="message" class="panel message">Willkommen in Golf Valley! Nutze die Tasten unten.</div>
+
+    <div class="bottom">
+      <div class="panel tile-info">
+        <strong id="tileTitle">Clubhaus</strong>
+        <div id="tileText">Hier kannst du Personal verwalten und speichern.</div>
+        <button class="open-club" id="clubButton">🏠 Clubhaus öffnen</button>
+      </div>
+
+      <div class="controls" aria-label="Touch-Steuerung">
+        <button class="ctrl blank">·</button>
+        <button class="ctrl" data-move="up">▲</button>
+        <button class="ctrl blank">·</button>
+        <button class="ctrl" data-move="left">◀</button>
+        <button class="action" id="interactButton">E</button>
+        <button class="ctrl" data-move="right">▶</button>
+        <button class="ctrl blank">·</button>
+        <button class="ctrl" data-move="down">▼</button>
+        <button class="ctrl blank">·</button>
+      </div>
+
+      <div class="panel help">
+        <strong>Steuerung</strong><br>
+        Pfeile: bewegen<br>
+        E: interagieren<br>
+        Tastatur: WASD/E
+      </div>
+    </div>
+  </main>
+</div>
+
+
+<div id="clubModal" class="modal-backdrop">
+  <section class="modal">
+    <div id="clubView" class="club-view">
+      <h2>🏠 Clubhaus</h2>
+
+      <div class="section">
+        <strong>📊 Statistiken</strong>
+        <div class="row"><span>Gesamtbesuche</span><strong id="totalVisitors">0</strong></div>
+        <div class="row"><span>Bekannte Personen</span><strong id="knownPeople">0</strong></div>
+        <div class="row"><span>Mitglieder</span><strong id="modalMembers">0</strong></div>
+        <div class="row"><span>Heute gespielte Runden</span><strong id="roundsToday">0</strong></div>
+        <div class="row"><span>Greenfee-Einnahmen gesamt</span><strong id="greenfeeRevenue">$0</strong></div>
+      </div>
+
+      <div class="section green">
+        <strong id="modalWeather">☀️ Wetter: Sonnig</strong>
+        <div class="small" id="weatherDescription"></div>
+      </div>
+
+      <div class="section orange">
+        <strong>💼 Betriebskosten</strong>
+        <div class="row"><span>Grundkosten</span><strong>$60</strong></div>
+        <div class="row"><span>Bahnpflege</span><strong id="courseCost">$0</strong></div>
+        <div class="row"><span>Löhne</span><strong id="staffCost">$0</strong></div>
+        <div class="row"><span>Nächster Tag</span><strong id="dailyCost">$60</strong></div>
+      </div>
+
+      <div class="section purple">
+        <strong>👥 Mitarbeiter</strong>
+        <div id="staffList"></div>
+      </div>
+
+      <button class="book-button" id="openBookButton">📖 Besucher- & Mitgliederbuch</button>
+
+      <div class="btn-grid">
+        <button class="btn green" id="saveButton">💾 Speichern</button>
+        <button class="btn" id="loadButton">📂 Laden</button>
+        <button class="btn purple" id="sleepButton">💤 Schlafen</button>
+        <button class="btn orange" id="newGameButton">🔄 Neues Spiel</button>
+        <button class="btn red" id="deleteSaveButton">🗑️ Speicher löschen</button>
+        <button class="btn gray" id="closeClubButton">Zurück</button>
+      </div>
+    </div>
+
+    <div id="bookView" class="book-view">
+      <div class="row">
+        <h2 style="margin:0">📖 Clubbuch</h2>
+        <button class="btn gray" id="closeBookButton">Clubhaus</button>
+      </div>
+      <div id="phaseBadges"></div>
+      <div class="book-tabs">
+        <button data-book-tab="overview" class="active">Übersicht</button>
+        <button data-book-tab="visitors">Besucher</button>
+        <button data-book-tab="members">Mitglieder</button>
+        <button data-book-tab="chronicle">Chronik</button>
+        <button data-book-tab="hall">Hall of Fame</button>
+      </div>
+      <div id="bookContent"></div>
+    </div>
+  </section>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  const W=15,H=10,TILE_W=40,TILE_H=40;
+  const SAVE_KEY="golf-valley-living-club-v2";
+  const GUEST_FEE=120, MEMBER_FEE=45, SECOND_ROUND_CHANCE=.05;
+
+  const WEATHER={
+    sunny:{id:"sunny",label:"Sonnig",icon:"☀️",visitor:1.2,damage:0,description:"Perfektes Golfwetter: mehr Besucher."},
+    cloudy:{id:"cloudy",label:"Bewölkt",icon:"☁️",visitor:1,damage:0,description:"Ruhiger Tag ohne besondere Effekte."},
+    rain:{id:"rain",label:"Regen",icon:"🌧️",visitor:.65,damage:-1,description:"Weniger Gäste, dafür weniger Austrocknung."},
+    storm:{id:"storm",label:"Sturm",icon:"⛈️",visitor:.2,damage:3,description:"Kaum Gäste und zusätzliche Platzschäden."},
+    heat:{id:"heat",label:"Hitze",icon:"🔥",visitor:.75,damage:2,description:"Hitze belastet Gäste und Grünflächen."}
+  };
+  const STAFF={
+    greenkeeper:{id:"greenkeeper",name:"Greenkeeper",icon:"🌿",hire:900,wage:90,max:3,description:"Reduziert täglichen Zustandsverlust."},
+    receptionist:{id:"receptionist",name:"Rezeption",icon:"🛎️",hire:700,wage:70,max:2,description:"Erhöht die Besucherchance."},
+    coach:{id:"coach",name:"Golftrainer",icon:"🏌️",hire:1100,wage:110,max:2,description:"Verbessert Ruf und Mitgliederentwicklung."}
+  };
+  const holeNames=["Birkenblick","Seerosenteich","Falkenhöhe","Waldlichtung","Sonnenhang"];
+  const spots={"3,2":0,"8,3":1,"11,6":2,"4,7":3,"10,8":4};
+  const firstNames=["Anna","Mia","Lea","Sofia","Emma","Lina","Clara","Laura","Paul","Noah","Luca","Leon","Jonas","Finn","Felix","Michael","Stefan","Uwe","Thomas","Jan"];
+  const lastNames=["Weber","Keller","Baumann","Frei","Meier","Schmid","Graf","Huber","Berger","König","Hoffmann","Wagner"];
+  const towns=["Golfingen","Seetal","Bergheim","Rosenau","Waldkirch","Sonnenfeld","Eichenried"];
+  const jobs=["Ärztin/Arzt","Ingenieur/in","Lehrer/in","Unternehmer/in","Designer/in","Rentner/in","Handwerker/in","Jurist/in"];
+  const traits=["Perfektionist","Genussgolfer","Frühaufsteher","Turnierspieler","Sparfuchs","Großzügig","Familienmensch","Wetterfest"];
+  const groupNames=["Eagles","Fairway Freunde","Birdie Brigade","Club 19","Sonntagsrunde","Valley Putters"];
+
+  const $=id=>document.getElementById(id);
+  const canvas=$("gameCanvas"),ctx=canvas.getContext("2d");
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const uid=()=>`${Date.now().toString(36)}-${Math.random().toString(36).slice(2,8)}`;
+
+  function makeTiles(){
+    const tiles=[];
+    for(let y=0;y<H;y++)for(let x=0;x<W;x++){
+      let type="grass",holeId=-1;
+      if(x===5&&y===5)type="clubhouse";
+      else if(spots[`${x},${y}`]!==undefined){type="hole_spot";holeId=spots[`${x},${y}`];}
+      else if(x===0||y===0||x===W-1||y===H-1)type="fence";
+      tiles.push({x,y,type,holeId,level:type==="clubhouse"?1:0,condition:100,seed:Math.abs((x*73856093)^(y*19349663))});
+    }
+    return tiles;
+  }
+
+  function newState(){
+    return {
+      version:2,money:2500,energy:100,reputation:5,day:1,season:"Frühling",time:6,isNight:false,
+      weather:WEATHER.sunny,player:{x:5,y:5},tiles:makeTiles(),visitorFeed:[],
+      totalVisits:0,totalRounds:0,roundsToday:0,greenfeeRevenue:0,
+      people:[],groups:[],chronicle:[],staff:{greenkeeper:0,receptionist:0,coach:0}
+    };
+  }
+
+  let state=newState(),messageTimer,bookTab="overview",bookSearch="",bookSort="rounds";
+
+  function tileAt(x,y){return state.tiles.find(t=>t.x===x&&t.y===y);}
+  function activeHoles(){return state.tiles.filter(t=>t.type==="hole"&&t.condition>40).length;}
+  function builtHoles(){return state.tiles.filter(t=>t.type==="hole").length;}
+  function members(){return state.people.filter(p=>p.isMember);}
+  function staffWages(){return Object.values(STAFF).reduce((s,r)=>s+(state.staff[r.id]||0)*r.wage,0);}
+  function dailyCost(){return 60+builtHoles()*35+staffWages();}
+  function avg(list,key){return list.length?list.reduce((s,v)=>s+(Number(v[key])||0),0)/list.length:0;}
+  function addChronicle(text,personId=null){
+    state.chronicle.unshift({id:uid(),day:state.day,text,personId});
+    state.chronicle=state.chronicle.slice(0,300);
+  }
+  function addMemory(person,text){
+    person.memories.unshift({day:state.day,text});
+    person.memories=person.memories.slice(0,20);
+  }
+  function showMessage(text,ms=3500){
+    clearTimeout(messageTimer);$("message").textContent=text;
+    messageTimer=setTimeout(()=>$("message").textContent="Erkunde den Platz oder öffne das Clubhaus.",ms);
+  }
+
+  function ensureGroups(){
+    if(state.groups.length)return;
+    for(let i=0;i<5;i++)state.groups.push({id:uid(),name:groupNames[i],memberIds:[]});
+  }
+
+  function createPerson(){
+    ensureGroups();
+    let name;
+    do{name=`${pick(firstNames)} ${pick(lastNames)}`;}while(state.people.some(p=>p.name===name));
+    const handicap=+(4+Math.random()*46).toFixed(1);
+    const group=Math.random()<.55?pick(state.groups):null;
+    const person={
+      id:uid(),name,age:18+Math.floor(Math.random()*62),town:pick(towns),job:pick(jobs),
+      income:["niedrig","mittel","hoch"][Math.floor(Math.random()*3)],
+      handicap,startingHandicap:handicap,trait:pick(traits),groupId:group?.id||null,
+      favoriteWeather:pick(Object.keys(WEATHER)),favoriteSeason:pick(["Frühling","Sommer","Herbst","Winter"]),
+      favoriteHole:null,preferredHour:7+Math.floor(Math.random()*11),spending:.75+Math.random()*.7,
+      patience:40+Math.floor(Math.random()*61),friendliness:40+Math.floor(Math.random()*61),
+      satisfaction:65+Math.floor(Math.random()*26),loyalty:5,visits:0,rounds:0,roundsToday:0,lastVisitDay:0,
+      greenfeesPaid:0,restaurantSpend:0,shopSpend:0,birdies:0,pars:0,bogeys:0,eagles:0,holeInOne:0,
+      bestScore:999,totalScore:0,tournamentWins:0,isMember:false,memberSince:null,memories:[],
+      joinedDay:state.day
+    };
+    state.people.push(person);
+    if(group)group.memberIds.push(person.id);
+    addMemory(person,"Erster Eintrag im Besucherbuch.");
+    addChronicle(`${person.name} wird erstmals im Club registriert.`,person.id);
+    return person;
+  }
+
+  function choosePerson(){
+    const eligible=state.people.filter(p=>p.lastVisitDay!==state.day);
+    const returnChance=clamp(.35+state.reputation/180,0,.8);
+    if(eligible.length&&Math.random()<returnChance){
+      const weighted=eligible.slice().sort((a,b)=>(b.loyalty+b.satisfaction/10)-(a.loyalty+a.satisfaction/10));
+      return weighted[Math.floor(Math.random()*Math.min(weighted.length,8))];
+    }
+    return createPerson();
+  }
+
+  function simulateRound(person,roundNumber){
+    const holes=Math.max(3,activeHoles()*3);
+    const skill=(54-person.handicap)/54;
+    const condition=avg(state.tiles.filter(t=>t.type==="hole"),"condition")||70;
+    let score=0,birdies=0,pars=0,bogeys=0,eagles=0,hio=0;
+    for(let i=0;i<holes;i++){
+      const r=Math.random()+skill*.38+(condition-70)/220;
+      if(Math.random()<.0008+skill*.0015){hio++;score+=1;}
+      else if(r>1.18){eagles++;score+=2;}
+      else if(r>.84){birdies++;score+=3;}
+      else if(r>.42){pars++;score+=4;}
+      else {bogeys++;score+=5+(Math.random()<.2?1:0);}
+    }
+    person.birdies+=birdies;person.pars+=pars;person.bogeys+=bogeys;person.eagles+=eagles;person.holeInOne+=hio;
+    person.rounds++;person.roundsToday++;person.totalScore+=score;person.bestScore=Math.min(person.bestScore,score);
+    state.totalRounds++;state.roundsToday++;
+    const old=person.handicap;
+    const target=clamp((score-holes*3.6)*1.45,0,54);
+    const coaching=(state.staff.coach||0)*.04;
+    person.handicap=+clamp(old+(target-old)*.025-coaching,0,54).toFixed(1);
+    if(hio){addMemory(person,`Hole-in-One in Runde ${person.rounds}.`);addChronicle(`🏆 ${person.name} erzielt ein Hole-in-One!`,person.id);}
+    if(score===person.bestScore){addMemory(person,`Neue Bestleistung: ${score} Schläge.`);}
+    if(Math.floor(person.rounds/50)!==Math.floor((person.rounds-1)/50)){
+      addMemory(person,`${person.rounds}. Golfrunde gespielt.`);
+      addChronicle(`${person.name} absolviert die ${person.rounds}. Runde.`,person.id);
+    }
+    return {score,birdies,pars,bogeys,eagles,hio,roundNumber};
+  }
+
+  function chargeRound(person){
+    const fee=person.isMember?MEMBER_FEE:GUEST_FEE;
+    const paid=Math.round(fee*person.spending);
+    state.money+=paid;state.greenfeeRevenue+=paid;person.greenfeesPaid+=paid;
+    return paid;
+  }
+
+  function maybeSpend(person){
+    let extra=0;
+    if(Math.random()<.35){const v=Math.round((12+Math.random()*30)*person.spending);person.restaurantSpend+=v;state.money+=v;extra+=v;}
+    if(Math.random()<.16){const v=Math.round((20+Math.random()*65)*person.spending);person.shopSpend+=v;state.money+=v;extra+=v;}
+    return extra;
+  }
+
+  function maybeBecomeMember(person){
+    if(person.isMember||person.visits<3||person.satisfaction<68)return false;
+    const chance=clamp(.01+person.loyalty/500+state.reputation/1500,0,.18);
+    if(Math.random()<chance){
+      person.isMember=true;person.memberSince=state.day;state.money+=600;
+      addMemory(person,"Mitgliedschaft im Golf Valley Club begonnen.");
+      addChronicle(`🪪 ${person.name} wird Mitglied des Clubs.`,person.id);
+      return true;
+    }
+    return false;
+  }
+
+  function visitClub(person){
+    person.visits++;person.lastVisitDay=state.day;person.roundsToday=0;
+    person.loyalty=clamp(person.loyalty+2+(person.favoriteWeather===state.weather.id?2:0),0,100);
+    person.satisfaction=clamp(person.satisfaction+(avg(state.tiles.filter(t=>t.type==="hole"),"condition")>75?1:-2),0,100);
+    state.totalVisits++;
+
+    const first=simulateRound(person,1),fee1=chargeRound(person);
+    let second=null,fee2=0;
+    if(Math.random()<SECOND_ROUND_CHANCE && state.time<=16){
+      second=simulateRound(person,2);fee2=chargeRound(person);
+      addMemory(person,"Am selben Tag eine zweite Golfrunde gespielt.");
+    }
+    const extras=maybeSpend(person);
+    const joined=maybeBecomeMember(person);
+    const favourite=state.tiles.filter(t=>t.type==="hole");
+    if(favourite.length&&!person.favoriteHole)person.favoriteHole=pick(favourite).holeId;
+
+    const roundText=second?`2 Runden · $${fee1+fee2} Greenfee`:`1 Runde · $${fee1} Greenfee`;
+    state.visitorFeed.unshift({name:person.name,member:person.isMember,roundText,score:first.score,joined});
+    state.visitorFeed=state.visitorFeed.slice(0,5);
+    if(joined)showMessage(`🎉 ${person.name} wurde Mitglied! +$600`,4500);
+    else if(second)showMessage(`⛳ ${person.name} spielt eine seltene zweite Runde.`,3500);
+  }
+
+  function randomWeather(){
+    const pool=state.season==="Sommer"?["sunny","sunny","sunny","cloudy","rain","storm","heat","heat"]:
+      state.season==="Herbst"?["cloudy","cloudy","rain","rain","sunny","storm"]:
+      state.season==="Winter"?["cloudy","cloudy","rain","storm","sunny"]:
+      ["sunny","sunny","cloudy","rain","rain","storm"];
+    return WEATHER[pick(pool)];
+  }
+  function nextSeason(){const a=["Frühling","Sommer","Herbst","Winter"];state.season=a[(a.indexOf(state.season)+1)%a.length];}
+  function agePeople(){
+    if(state.day%112!==1)return;
+    state.people.forEach(p=>{
+      p.age++;
+      if(p.age>68)p.handicap=+clamp(p.handicap+.3,0,54).toFixed(1);
+    });
+    addChronicle("Ein neues Clubjahr beginnt. Alle registrierten Personen sind ein Jahr älter.");
+  }
+  function runClubChampionship(){
+    if(state.day%28!==0||members().length<3)return;
+    const entrants=members().slice().sort(()=>Math.random()-.5).slice(0,Math.min(12,members().length));
+    const winner=entrants.sort((a,b)=>(a.handicap+Math.random()*12)-(b.handicap+Math.random()*12))[0];
+    winner.tournamentWins++;state.reputation+=4;state.money+=300;
+    addMemory(winner,"Clubmeisterschaft gewonnen.");
+    addChronicle(`🏆 ${winner.name} gewinnt die Clubmeisterschaft.`,winner.id);
+  }
+  function startNewDay(){
+    state.day++;if(state.day%28===1)nextSeason();
+    state.time=6;state.energy=100;state.isNight=false;state.visitorFeed=[];state.roundsToday=0;
+    state.people.forEach(p=>p.roundsToday=0);
+    state.weather=randomWeather();state.money-=dailyCost();state.reputation+=state.staff.coach||0;
+    const loss=Math.max(0,3+state.weather.damage-Math.min(3,state.staff.greenkeeper||0));
+    state.tiles=state.tiles.map(t=>t.type==="hole"?{...t,condition:Math.max(0,t.condition-loss)}:t);
+    agePeople();runClubChampionship();render();
+    showMessage(`${state.weather.icon} Tag ${state.day}: ${state.weather.label}. Betriebskosten: $${dailyCost()}`,5000);
+  }
+
+  function spawnVisitor(){
+    if(activeHoles()===0)return;
+    const chance=Math.min(.95,(.38+state.reputation/100+(state.staff.receptionist||0)*.08)*state.weather.visitor);
+    if(Math.random()>chance)return;
+    visitClub(choosePerson());
+  }
+  function advanceHour(){
+    state.time++;
+    if(state.time>=24){startNewDay();return;}
+    if(state.time===20){state.isNight=true;showMessage("🌙 Es wird dunkel.");}
+    if(state.time>=8&&state.time<=19)spawnVisitor();
+    render();
+  }
+  setInterval(advanceHour,10000);
+
+  function move(dx,dy){
+    state.player={x:clamp(state.player.x+dx,1,W-2),y:clamp(state.player.y+dy,1,H-2)};render();
+  }
+  function interact(){
+    if(state.isNight){showMessage("💤 Es ist zu dunkel zum Arbeiten.");return;}
+    const t=tileAt(state.player.x,state.player.y);if(!t)return;
+    if(t.type==="clubhouse"){openClub();return;}
+    if(t.type==="hole_spot"){
+      if(state.money<500||state.energy<20){showMessage("❌ Bau kostet $500 und 20 Energie.");return;}
+      state.money-=500;state.energy-=20;state.reputation+=10;t.type="hole";t.level=1;t.condition=100;
+      addChronicle(`⛳ Die Bahn ${holeNames[t.holeId]} wird eröffnet.`);
+      showMessage(`⛳ ${holeNames[t.holeId]} gebaut!`);
+    }else if(t.type==="hole"&&t.condition<70){
+      if(state.money<180||state.energy<12){showMessage("❌ Reparatur kostet $180 und 12 Energie.");return;}
+      state.money-=180;state.energy-=12;t.condition=100;showMessage("🔧 Bahn repariert.");
+    }else if(t.type==="hole"&&t.level<3){
+      const cost=t.level*1200;
+      if(state.money<cost||state.energy<25){showMessage(`❌ Upgrade kostet $${cost} und 25 Energie.`);return;}
+      state.money-=cost;state.energy-=25;state.reputation+=5;t.level++;t.condition=100;
+      addChronicle(`⬆️ ${holeNames[t.holeId]} erreicht Level ${t.level}.`);
+      showMessage(`⬆️ Bahn auf Level ${t.level}.`);
+    }else showMessage(t.type==="hole"?"✨ Diese Bahn ist in gutem Zustand.":"🌱 Nur Gras hier.");
+    render();
+  }
+
+  function draw(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    state.tiles.forEach(t=>{
+      const x=t.x*TILE_W,y=t.y*TILE_H;
+      if(t.type==="fence"){ctx.fillStyle="#3f6212";ctx.fillRect(x,y,TILE_W,TILE_H);ctx.fillStyle="#854d0e";ctx.fillRect(x,y+16,TILE_W,7);}
+      else{ctx.fillStyle=t.type==="hole"?"#4ade80":"#65a30d";ctx.fillRect(x,y,TILE_W,TILE_H);ctx.fillStyle="rgba(22,101,52,.28)";ctx.fillRect(x+(t.seed%7)+2,y+(t.seed%13)+4,3,3);}
+      if(t.type==="hole_spot"){ctx.fillStyle="#fde68a";ctx.fillRect(x+8,y+8,24,24);ctx.fillStyle="#92400e";ctx.font="18px sans-serif";ctx.fillText("⚒",x+11,y+28);}
+      if(t.type==="clubhouse"){ctx.fillStyle="#92400e";ctx.fillRect(x+5,y+14,30,22);ctx.fillStyle="#dc2626";ctx.beginPath();ctx.moveTo(x+3,y+16);ctx.lineTo(x+20,y+3);ctx.lineTo(x+37,y+16);ctx.fill();ctx.fillStyle="#fef3c7";ctx.fillRect(x+14,y+22,8,14);}
+      if(t.type==="hole"){ctx.fillStyle="#14532d";ctx.beginPath();ctx.arc(x+21,y+25,10,0,7);ctx.fill();ctx.strokeStyle="#fff";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x+21,y+25);ctx.lineTo(x+21,y+8);ctx.stroke();ctx.fillStyle="#ef4444";ctx.beginPath();ctx.moveTo(x+21,y+8);ctx.lineTo(x+33,y+13);ctx.lineTo(x+21,y+17);ctx.fill();ctx.fillStyle="#fff";ctx.font="9px sans-serif";ctx.fillText(`L${t.level}`,x+2,y+10);}
+    });
+    const px=state.player.x*TILE_W,py=state.player.y*TILE_H;
+    ctx.fillStyle="#fde047";ctx.beginPath();ctx.arc(px+20,py+18,8,0,7);ctx.fill();ctx.fillStyle="#1d4ed8";ctx.fillRect(px+13,py+25,14,11);
+    if(state.isNight){ctx.fillStyle="rgba(3,7,18,.58)";ctx.fillRect(0,0,canvas.width,canvas.height);}
+  }
+
+  function updateUI(){
+    $("money").textContent=`$${state.money}`;$("money").className=state.money<0?"negative":"";
+    $("energy").textContent=state.energy;$("reputation").textContent=state.reputation;
+    $("visitors").textContent=`${state.visitorFeed.length} aktuell`;$("members").textContent=`${members().length} Mitglieder`;
+    $("holes").textContent=`${activeHoles()} Bahnen`;$("day").textContent=`${state.season} · Tag ${state.day}`;
+    $("time").textContent=`${String(state.time).padStart(2,"0")}:00`;$("weather").textContent=`${state.weather.icon} ${state.weather.label}`;
+    const t=tileAt(state.player.x,state.player.y);let title="Gras",text="Hier gibt es nichts zu tun.";
+    if(t.type==="clubhouse"){title="🏠 Clubhaus";text="Personal, Finanzen und Clubbuch verwalten.";}
+    if(t.type==="hole_spot"){title=`⚒ Bauplatz: ${holeNames[t.holeId]}`;text="Interagieren: Bahn für $500 bauen.";}
+    if(t.type==="hole"){title=`⛳ ${holeNames[t.holeId]} · Level ${t.level}`;text=`Zustand: ${t.condition}%`;}
+    if(t.type==="fence"){title="Zaun";text="Hier endet dein Gelände.";}
+    $("tileTitle").textContent=title;$("tileText").textContent=text;$("clubButton").style.display=t.type==="clubhouse"?"block":"none";
+    $("visitorFeed").innerHTML=state.visitorFeed.map(v=>`<div class="visitor-card"><strong>${v.member?"🪪":"🎟️"} ${v.name}</strong><br>${v.roundText}<br>Erste Runde: ${v.score} Schläge${v.joined?" · neues Mitglied":""}</div>`).join("");
+  }
+  function render(){draw();updateUI();}
+
+  function renderClub(){
+    $("totalVisitors").textContent=state.totalVisits;$("knownPeople").textContent=state.people.length;
+    $("modalMembers").textContent=members().length;$("roundsToday").textContent=state.roundsToday;
+    $("greenfeeRevenue").textContent=`$${state.greenfeeRevenue}`;
+    $("modalWeather").textContent=`${state.weather.icon} Wetter: ${state.weather.label}`;$("weatherDescription").textContent=state.weather.description;
+    $("courseCost").textContent=`$${builtHoles()*35}`;$("staffCost").textContent=`$${staffWages()}`;$("dailyCost").textContent=`$${dailyCost()}`;
+    $("staffList").innerHTML=Object.values(STAFF).map(r=>{const n=state.staff[r.id]||0;return `<div class="staff-card"><div><strong>${r.icon} ${r.name} (${n}/${r.max})</strong><div class="small">${r.description}</div><div class="small">Einstellung $${r.hire} · Lohn $${r.wage}/Tag</div></div><div class="staff-actions"><button data-hire="${r.id}" ${n>=r.max?"disabled":""}>+</button><button data-fire="${r.id}" ${n<=0?"disabled":""}>−</button></div></div>`;}).join("");
+    document.querySelectorAll("[data-hire]").forEach(b=>b.onclick=()=>hire(b.dataset.hire));
+    document.querySelectorAll("[data-fire]").forEach(b=>b.onclick=()=>fire(b.dataset.fire));
+  }
+
+  function personCard(p){
+    const avgScore=p.rounds?(p.totalScore/p.rounds).toFixed(1):"–";
+    const group=state.groups.find(g=>g.id===p.groupId);
+    return `<div class="person-card ${p.isMember?"member":""}">
+      <div class="person-head"><div><strong>${p.isMember?"🪪":"🎟️"} ${p.name}</strong><div class="small">${p.age} Jahre · ${p.town} · ${p.job}</div></div><span class="tag">HCP ${p.handicap.toFixed(1)}</span></div>
+      <div class="person-grid">
+        <span>Besuche: <b>${p.visits}</b></span><span>Runden: <b>${p.rounds}</b></span>
+        <span>Zufriedenheit: <b>${p.satisfaction}%</b></span><span>Treue: <b>${p.loyalty}%</b></span>
+        <span>Bestscore: <b>${p.bestScore===999?"–":p.bestScore}</b></span><span>Ø Score: <b>${avgScore}</b></span>
+        <span>Birdies: <b>${p.birdies}</b></span><span>Hole-in-One: <b>${p.holeInOne}</b></span>
+        <span>Greenfees: <b>$${p.greenfeesPaid}</b></span><span>Gruppe: <b>${group?.name||"keine"}</b></span>
+      </div>
+      <div class="small" style="margin-top:6px">Charakter: ${p.trait} · Lieblingswetter: ${WEATHER[p.favoriteWeather]?.icon||""} ${WEATHER[p.favoriteWeather]?.label||""}${p.isMember?` · Mitglied seit Tag ${p.memberSince}`:""}</div>
+      ${p.memories.length?`<div class="memory-list">${p.memories.slice(0,3).map(m=>`<div class="memory-item">Tag ${m.day}: ${m.text}</div>`).join("")}</div>`:""}
+    </div>`;
+  }
+
+  function sortedPeople(kind){
+    let list=state.people.filter(p=>kind==="members"?p.isMember:kind==="visitors"?!p.isMember:true);
+    const q=bookSearch.trim().toLowerCase();
+    if(q)list=list.filter(p=>`${p.name} ${p.town} ${p.job} ${p.trait}`.toLowerCase().includes(q));
+    return list.sort((a,b)=>bookSort==="name"?a.name.localeCompare(b.name):bookSort==="hcp"?a.handicap-b.handicap:bookSort==="satisfaction"?b.satisfaction-a.satisfaction:b.rounds-a.rounds);
+  }
+
+  function renderBook(){
+    $("phaseBadges").innerHTML=Array.from({length:10},(_,i)=>`<span class="phase-badge">Phase ${i+1} ✓</span>`).join("");
+    document.querySelectorAll("[data-book-tab]").forEach(b=>b.classList.toggle("active",b.dataset.bookTab===bookTab));
+    const p=state.people,ms=members();
+    if(bookTab==="overview"){
+      $("bookContent").innerHTML=`<div class="book-summary">
+        <div class="metric"><span>Bekannte Personen</span><strong>${p.length}</strong></div>
+        <div class="metric"><span>Mitglieder</span><strong>${ms.length}</strong></div>
+        <div class="metric"><span>Gespielte Runden</span><strong>${state.totalRounds}</strong></div>
+        <div class="metric"><span>Ø Handicap</span><strong>${avg(p,"handicap").toFixed(1)}</strong></div>
+        <div class="metric"><span>Ø Zufriedenheit</span><strong>${avg(p,"satisfaction").toFixed(0)}%</strong></div>
+        <div class="metric"><span>Greenfee-Umsatz</span><strong>$${state.greenfeeRevenue}</strong></div>
+      </div>
+      <div class="section green"><strong>Spielregeln</strong><div class="small">Jede Person spielt bei einem Besuch eine Runde. Eine zweite Runde am selben Tag wird mit 5 % Wahrscheinlichkeit gespielt. Pro Person sind höchstens zwei Runden pro Tag möglich; jede Runde erzeugt ein Greenfee.</div></div>`;
+      return;
+    }
+    if(bookTab==="visitors"||bookTab==="members"){
+      const list=sortedPeople(bookTab);
+      $("bookContent").innerHTML=`<div class="book-tools"><input id="bookSearch" placeholder="Name, Ort, Beruf oder Charakter suchen" value="${bookSearch.replace(/"/g,"&quot;")}"><select id="bookSort"><option value="rounds">Runden</option><option value="hcp">Handicap</option><option value="satisfaction">Zufriedenheit</option><option value="name">Name</option></select></div><div class="people-list">${list.length?list.map(personCard).join(""):'<div class="section">Noch keine Einträge.</div>'}</div>`;
+      $("bookSort").value=bookSort;$("bookSearch").oninput=e=>{bookSearch=e.target.value;renderBook();};$("bookSort").onchange=e=>{bookSort=e.target.value;renderBook();};
+      return;
+    }
+    if(bookTab==="chronicle"){
+      $("bookContent").innerHTML=`<div class="chronicle-list">${state.chronicle.length?state.chronicle.map(c=>`<div class="chronicle-item"><strong>Tag ${c.day}</strong><br>${c.text}</div>`).join(""):'Noch keine Clubgeschichte.'}</div>`;
+      return;
+    }
+    const records=[
+      ["Meiste Runden",p.slice().sort((a,b)=>b.rounds-a.rounds)[0],x=>`${x.rounds} Runden`],
+      ["Niedrigstes Handicap",p.slice().sort((a,b)=>a.handicap-b.handicap)[0],x=>`HCP ${x.handicap.toFixed(1)}`],
+      ["Beste Runde",p.filter(x=>x.bestScore<999).sort((a,b)=>a.bestScore-b.bestScore)[0],x=>`${x.bestScore} Schläge`],
+      ["Meiste Turniersiege",p.slice().sort((a,b)=>b.tournamentWins-a.tournamentWins)[0],x=>`${x.tournamentWins} Siege`],
+      ["Höchste Greenfee-Ausgaben",p.slice().sort((a,b)=>b.greenfeesPaid-a.greenfeesPaid)[0],x=>`$${x.greenfeesPaid}`],
+      ["Treueste Person",p.slice().sort((a,b)=>b.loyalty-a.loyalty)[0],x=>`${x.loyalty}% Treue`]
+    ];
+    $("bookContent").innerHTML=records.map(([label,person,fmt])=>`<div class="hall-row"><span>${label}</span><strong>${person?`${person.name} · ${fmt(person)}`:"–"}</strong></div>`).join("");
+  }
+
+  function openClub(){renderClub();$("clubView").classList.remove("hidden");$("bookView").classList.remove("show");$("clubModal").classList.add("show");}
+  function closeClub(){$("clubModal").classList.remove("show");render();}
+  function openBook(){$("clubView").classList.add("hidden");$("bookView").classList.add("show");renderBook();}
+  function closeBook(){$("bookView").classList.remove("show");$("clubView").classList.remove("hidden");renderClub();}
+  function hire(id){const r=STAFF[id],n=state.staff[id]||0;if(n>=r.max||state.money<r.hire){showMessage("❌ Einstellung nicht möglich.");return;}state.money-=r.hire;state.staff[id]=n+1;renderClub();render();}
+  function fire(id){if((state.staff[id]||0)>0){state.staff[id]--;renderClub();render();}}
+
+  function normalize(data){
+    const base=newState(),s={...base,...data};
+    s.weather=WEATHER[data.weather?.id]||WEATHER.sunny;s.people=Array.isArray(data.people)?data.people:[];s.groups=Array.isArray(data.groups)?data.groups:[];
+    s.chronicle=Array.isArray(data.chronicle)?data.chronicle:[];s.visitorFeed=[];
+    s.people.forEach(p=>{p.memories=Array.isArray(p.memories)?p.memories:[];p.roundsToday=0;p.bestScore=p.bestScore??999;p.totalScore=p.totalScore||0;});
+    return s;
+  }
+  function save(){localStorage.setItem(SAVE_KEY,JSON.stringify(state));showMessage("💾 Spielstand gespeichert.");}
+  function load(){const raw=localStorage.getItem(SAVE_KEY);if(!raw){showMessage("Kein Spielstand vorhanden.");return;}try{state=normalize(JSON.parse(raw));closeClub();showMessage("📂 Spielstand geladen.");}catch{showMessage("❌ Spielstand ist beschädigt.");}}
+
+  document.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{const d=b.dataset.move;move(d==="left"?-1:d==="right"?1:0,d==="up"?-1:d==="down"?1:0);});
+  $("interactButton").onclick=interact;$("clubButton").onclick=openClub;$("closeClubButton").onclick=closeClub;
+  $("openBookButton").onclick=openBook;$("closeBookButton").onclick=closeBook;
+  document.querySelectorAll("[data-book-tab]").forEach(b=>b.onclick=()=>{bookTab=b.dataset.bookTab;renderBook();});
+  $("saveButton").onclick=save;$("loadButton").onclick=load;
+  $("sleepButton").onclick=()=>{if(state.time<18){showMessage("⏰ Schlafen ist erst ab 18:00 möglich.");return;}closeClub();startNewDay();};
+  $("newGameButton").onclick=()=>{if(confirm("Wirklich ein neues Spiel starten?")){state=newState();closeClub();showMessage("🔄 Neues Spiel gestartet.");}};
+  $("deleteSaveButton").onclick=()=>{localStorage.removeItem(SAVE_KEY);showMessage("🗑️ Gespeicherter Spielstand gelöscht.");};
+  $("clubModal").onclick=e=>{if(e.target===$("clubModal"))closeClub();};
+  window.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(["arrowup","arrowdown","arrowleft","arrowright"," ","w","a","s","d","e"].includes(k))e.preventDefault();if(k==="w"||k==="arrowup")move(0,-1);if(k==="s"||k==="arrowdown")move(0,1);if(k==="a"||k==="arrowleft")move(-1,0);if(k==="d"||k==="arrowright")move(1,0);if(k==="e"||k===" ")interact();},{passive:false});
+  addChronicle("Der Golf Valley Club nimmt seinen Betrieb auf.");
+  render();
+})();
+</script>
+</body>
+</html>
